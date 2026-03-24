@@ -1,31 +1,28 @@
-export class UsuariosRepository {
-  constructor() {
-
-    this.usuarios = [
-      { id: 1, nome: 'Ana Silva',   email: 'ana@exemplo.com',   senha: '123' },
-      { id: 2, nome: 'Bruno Costa', email: 'bruno@exemplo.com', senha: 'hash2' },
-    ];
-    this.proximoId = 3;
+export class EntregasRepositories {
+  constructor(database) {
+    this.database = database;
   }
 
-  async listarTodos() {
-    return this.usuarios;
+  listarTodos() {
+    return this.database.getEntregas();
   }
 
-  async buscarPorId(id) {
-    return this.usuarios.find((u) => u.id === id) ?? null;
+  buscarPorId(id) {
+    return this.database.getEntregas().find(e => e.id === id);
   }
 
-  async criar(dados) {
-    const novoUsuario = { id: this.proximoId++, ...dados };
-    this.usuarios.push(novoUsuario);
-    return novoUsuario;
+  criar(entrega) {
+    this.database.getEntregas().push(entrega);
+    return entrega;
   }
 
-  async atualizar(id, dados) {
-    const indice = this.usuarios.findIndex((u) => u.id === id);
-    if (indice === -1) return null;
-    this.usuarios[indice] = { ...this.usuarios[indice], ...dados, id };
-    return this.usuarios[indice];
+  atualizar(id, dados) {
+    const entregas = this.database.getEntregas();
+    const index = entregas.findIndex(e => e.id === id);
+
+    if (index === -1) return null;
+
+    entregas[index] = { ...entregas[index], ...dados };
+    return entregas[index];
   }
-  // aaa
+}
