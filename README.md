@@ -1,5 +1,7 @@
 # Delivery Tracker API
 
+(*** PROFESSOR, por falta de conhecimento no git, acabei criando uma branch pra atividade 05 que está na (main) e a master ficou com a atividade 06 (master);)
+
 API REST para rastreamento de entregas com controle de ciclo de vida, histórico de eventos e validações de regras de negócio.
 
 ## Stack
