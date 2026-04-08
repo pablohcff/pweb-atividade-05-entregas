@@ -1,0 +1,178 @@
+@baseUrl = http://localhost:3001/api/entregas
+@apiUrl = http://localhost:3001/api
+@motoristasUrl = {{apiUrl}}/motoristas
+
+### 🔹 1. Criar entrega (válida)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Notebook Dell",
+  "origem": "Maceió",
+  "destino": "Recife"
+}
+
+### 🔹 2. Criar outra entrega
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Smartphone Samsung",
+  "origem": "São Paulo",
+  "destino": "Rio de Janeiro"
+}
+
+### 🔹 3. Tentar criar entrega duplicada (erro esperado)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Notebook Dell",
+  "origem": "Maceió",
+  "destino": "Recife"
+}
+
+### 🔹 4. Listar todas as entregas
+GET {{baseUrl}}
+
+### 🔹 5. Buscar entrega por ID
+GET {{baseUrl}}/1
+
+### 🔹 6. Buscar entrega inexistente (erro)
+GET {{baseUrl}}/999
+
+### 🔹 7. Avançar status (CRIADA → EM_TRANSITO)
+PATCH {{baseUrl}}/1/avancar
+
+### 🔹 8. Avançar status (EM_TRANSITO → ENTREGUE)
+PATCH {{baseUrl}}/1/avancar
+
+### 🔹 9. Tentar avançar após ENTREGUE (erro)
+PATCH {{baseUrl}}/1/avancar
+
+### 🔹 10. Tentar cancelar entrega finalizada (erro)
+PATCH {{baseUrl}}/1/cancelar
+
+### 🔹 11. Cancelar entrega válida (ID 2)
+PATCH {{baseUrl}}/2/cancelar
+
+### 🔹 12. Tentar cancelar novamente (erro)
+PATCH {{baseUrl}}/2/cancelar
+
+### 🔹 13. Consultar histórico da entrega 1
+GET {{baseUrl}}/1/historico
+
+### 🔹 14. Consultar histórico da entrega 2
+GET {{baseUrl}}/2/historico
+
+### 🔹 15. Filtrar entregas por status (ENTREGUE)
+GET {{baseUrl}}?status=ENTREGUE
+
+### 🔹 16. Filtrar entregas por status (CANCELADA)
+GET {{baseUrl}}?status=CANCELADA
+
+### 🔹 17. Criar entrega inválida (origem = destino)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Teste inválido",
+  "origem": "Maceió",
+  "destino": "Maceió"
+}
+
+### ========================
+### Atividade 06 - Motoristas
+### ========================
+
+### 🔹 18. Cadastrar motorista (válido)
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "João Almeida",
+  "cpf": "12345678901",
+  "placaVeiculo": "ABC1D23"
+}
+
+### 🔹 19. Cadastrar segundo motorista (válido)
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "Maria Costa",
+  "cpf": "98765432100",
+  "placaVeiculo": "XYZ9K88"
+}
+
+### 🔹 20. Cadastrar motorista com CPF duplicado (erro esperado: 409)
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "João Duplicado",
+  "cpf": "12345678901",
+  "placaVeiculo": "AAA0A00"
+}
+
+### 🔹 21. Listar motoristas
+GET {{motoristasUrl}}
+
+### 🔹 22. Buscar motorista por ID
+GET {{motoristasUrl}}/1
+
+### 🔹 23. Buscar motorista inexistente (erro esperado: 404)
+GET {{motoristasUrl}}/999
+
+### 🔹 24. Criar entrega para teste de atribuição
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Pedido Atv06 - Atribuicao",
+  "origem": "Centro de Distribuição A",
+  "destino": "Cliente Final B"
+}
+
+### 🔹 25. Atribuir motorista ATIVO em entrega CRIADA (sucesso)
+PATCH {{baseUrl}}/2/atribuir
+Content-Type: application/json
+
+{
+  "motoristaId": 1
+}
+
+### 🔹 26. Listar entregas de um motorista
+GET {{motoristasUrl}}/1/entregas
+
+### 🔹 27. Listar entregas de um motorista com filtro combinado por status
+GET {{motoristasUrl}}/1/entregas?status=CRIADA
+
+### 🔹 28. Avançar entrega atribuída para EM_TRANSITO
+PATCH {{baseUrl}}/3/avancar
+
+### 🔹 29. Tentar atribuir motorista em entrega EM_TRANSITO (erro esperado: 422)
+PATCH {{baseUrl}}/3/atribuir
+Content-Type: application/json
+
+{
+  "motoristaId": 2
+}
+
+### 🔹 30. Criar nova entrega para validar motorista inexistente
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Pedido Atv06 - Motorista inexistente",
+  "origem": "Hub Norte",
+  "destino": "Hub Sul"
+}
+
+### 🔹 31. Tentar atribuir motorista inexistente (erro esperado: 404)
+PATCH {{baseUrl}}/4/atribuir
+Content-Type: application/json
+
+{
+  "motoristaId": 999
+}
