@@ -176,3 +176,39 @@ Content-Type: application/json
 {
   "motoristaId": 999
 }
+
+### ========================
+### Atividade 07 - Persistência SQLite
+### ========================
+
+@relatoriosUrl = {{apiUrl}}/relatorios
+
+### 🔹 32. [PERSISTÊNCIA] Reiniciar servidor e consultar entrega por ID → deve retornar dados persistidos
+GET {{baseUrl}}/1
+
+### 🔹 33. [PERSISTÊNCIA] Inserir nova entrega, reiniciar servidor, consultar por ID → deve persistir
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Entrega Persistente",
+  "origem": "Fortaleza",
+  "destino": "Natal"
+}
+
+### 🔹 34. [CPF DUPLICADO] Tentar inserir motorista com CPF já cadastrado → 409 com mensagem clara
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "CPF Duplicado Teste",
+  "cpf": "12345678901",
+  "placaVeiculo": "DUP0000"
+}
+
+### 🔹 35. [RELATÓRIO] Contagem de entregas agrupadas por status
+GET {{relatoriosUrl}}/entregas-por-status
+
+### 🔹 36. [RELATÓRIO] Motoristas com pelo menos uma entrega ativa (não ENTREGUE nem CANCELADA)
+GET {{relatoriosUrl}}/motoristas-ativos
+
