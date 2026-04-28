@@ -1,65 +1,73 @@
 // src/repositories/MotoristasRepository.js
+//
+// RF-03 (Atividade 08): Reimplementação com PrismaClient.
+// Os contratos de interface foram mantidos idênticos aos da Atividade 07.
+// Mapeamento: snake_case do SQL antigo → camelCase do Prisma
+//   placa_veiculo → placaVeiculo
 
 import { AppError } from '../utils/AppError.js';
 
 export class MotoristasRepository {
-  constructor(db) {
-    this.db = db;
+  /**
+   * @param {import('@prisma/client').PrismaClient} prisma
+   */
+  constructor(prisma) {
+    this.prisma = prisma;
   }
 
-  _mapRow(row) {
+  _mapMotorista(motorista) {
     return {
-      id: row.id,
-      nome: row.nome,
-      cpf: row.cpf,
-      placaVeiculo: row.placa_veiculo,
-      status: row.status,
+      id: motorista.id,
+      nome: motorista.nome,
+      cpf: motorista.cpf,
+      placaVeiculo: motorista.placaVeiculo,
+      status: motorista.status,
     };
   }
 
-  listarTodos() {
-    return this.db.prepare('SELECT * FROM motoristas').all().map((row) => this._mapRow(row));
+  async listarTodos() {
+    const motoristas = await this.prisma.motorista.findMany({ orderBy: { createdAt: 'asc' } });
+    return motoristas.map((m) => this._mapMotorista(m));
   }
 
-  buscarPorId(id) {
-    const row = this.db.prepare('SELECT * FROM motoristas WHERE id = ?').get(id);
-    return row ? this._mapRow(row) : null;
+  async buscarPorId(id) {
+    const motorista = await this.prisma.motorista.findUnique({ where: { id } });
+    return motorista ? this._mapMotorista(motorista) : null;
   }
 
-  buscarPorCPF(cpf) {
-    const row = this.db.prepare('SELECT * FROM motoristas WHERE cpf = ?').get(cpf);
-    return row ? this._mapRow(row) : null;
+  async buscarPorCPF(cpf) {
+    const motorista = await this.prisma.motorista.findUnique({ where: { cpf } });
+    return motorista ? this._mapMotorista(motorista) : null;
   }
 
-  criar(dados) {
+  async criar(dados) {
     const { nome, cpf, placaVeiculo, status } = dados;
     try {
-      const result = this.db
-        .prepare('INSERT INTO motoristas (nome, cpf, placa_veiculo, status) VALUES (?, ?, ?, ?)')
-        .run(nome, cpf, placaVeiculo, status);
-      return this.buscarPorId(Number(result.lastInsertRowid));
+      const motorista = await this.prisma.motorista.create({
+        data: { nome, cpf, placaVeiculo, status },
+      });
+      return this._mapMotorista(motorista);
     } catch (err) {
-      if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      // Código Prisma P2002 → violação de constraint única (CPF duplicado)
+      if (err.code === 'P2002') {
         throw new AppError(`Já existe um motorista cadastrado com o CPF ${cpf}.`, 409);
       }
       throw err;
     }
   }
 
-  atualizar(id, dados) {
+  async atualizar(id, dados) {
     const { nome, cpf, placaVeiculo, status } = dados;
-    const updates = [];
-    const values = [];
+    const data = {};
 
-    if (nome !== undefined) { updates.push('nome = ?'); values.push(nome); }
-    if (cpf !== undefined) { updates.push('cpf = ?'); values.push(cpf); }
-    if (placaVeiculo !== undefined) { updates.push('placa_veiculo = ?'); values.push(placaVeiculo); }
-    if (status !== undefined) { updates.push('status = ?'); values.push(status); }
+    if (nome !== undefined) data.nome = nome;
+    if (cpf !== undefined) data.cpf = cpf;
+    if (placaVeiculo !== undefined) data.placaVeiculo = placaVeiculo;
+    if (status !== undefined) data.status = status;
 
-    if (updates.length === 0) return this.buscarPorId(id);
+    if (Object.keys(data).length === 0) return this.buscarPorId(id);
 
-    values.push(id);
-    this.db.prepare(`UPDATE motoristas SET ${updates.join(', ')} WHERE id = ?`).run(...values);
-    return this.buscarPorId(id);
+    const motorista = await this.prisma.motorista.update({ where: { id }, data });
+    return this._mapMotorista(motorista);
   }
 }

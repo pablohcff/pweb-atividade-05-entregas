@@ -1,3 +1,6 @@
+// ALTERAÇÃO (Atividade 08): adicionado async/await — motivação idêntica à do
+// EntregasService: PrismaClient é assíncrono, portanto é inevitável.
+// A lógica de negócio permanece completamente inalterada.
 import { AppError } from '../utils/AppError.js';
  
 export class MotoristasService {
@@ -8,12 +11,12 @@ export class MotoristasService {
     this.repository = repository;
   }
  
-  criarMotorista({ nome, cpf, placaVeiculo }) {
+  async criarMotorista({ nome, cpf, placaVeiculo }) {
     if (!nome || !cpf || !placaVeiculo) {
       throw new AppError('Os campos nome, cpf e placaVeiculo são obrigatórios.');
     }
  
-    const existente = this.repository.buscarPorCPF(cpf);
+    const existente = await this.repository.buscarPorCPF(cpf);
     if (existente) {
       throw new AppError(`Já existe um motorista cadastrado com o CPF ${cpf}.`, 409);
     }
@@ -21,12 +24,12 @@ export class MotoristasService {
     return this.repository.criar({ nome, cpf, placaVeiculo, status: 'ATIVO' });
   }
  
-  listarMotoristas() {
+  async listarMotoristas() {
     return this.repository.listarTodos();
   }
  
-  buscarPorId(id) {
-    const motorista = this.repository.buscarPorId(Number(id));
+  async buscarPorId(id) {
+    const motorista = await this.repository.buscarPorId(Number(id));
     if (!motorista) throw new AppError('Motorista não encontrado.', 404);
     return motorista;
   }

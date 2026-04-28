@@ -16,9 +16,12 @@ export class EntregasService {
     return { data: new Date().toISOString(), descricao };
   }
  
-  _verificarDuplicidade(descricao, origem, destino, ignorarId = null) {
-    const ativas = this.repository
-      .listarTodos()
+  // ALTERAÇÃO (Atividade 08): adicionado async/await em todos os métodos que
+  // chamam o repository. Motivação: PrismaClient é Promise-based (assíncrono),
+  // portanto é inevitável propagar async pela cadeia de chamadas. A lógica de
+  // negócio permanece completamente inalterada.
+  async _verificarDuplicidade(descricao, origem, destino, ignorarId = null) {
+    const ativas = (await this.repository.listarTodos())
       .filter((e) => !STATUS_FINAIS.includes(e.status));
  
     const duplicada = ativas.find(
@@ -36,7 +39,7 @@ export class EntregasService {
  
   // ─── casos de uso ────────────────────────────────────────────────────────────
  
-  criarEntrega({ descricao, origem, destino }) {
+  async criarEntrega({ descricao, origem, destino }) {
     if (!descricao || !origem || !destino) {
       throw new AppError('Os campos descricao, origem e destino são obrigatórios.');
     }
@@ -45,7 +48,7 @@ export class EntregasService {
       throw new AppError('Origem e destino não podem ser iguais.');
     }
  
-    this._verificarDuplicidade(descricao, origem, destino);
+    await this._verificarDuplicidade(descricao, origem, destino);
  
     const historico = [this._criarEvento('Entrega criada.')];
  
@@ -59,8 +62,8 @@ export class EntregasService {
     });
   }
  
-  listarEntregas(filtroStatus) {
-    const todas = this.repository.listarTodos();
+  async listarEntregas(filtroStatus) {
+    const todas = await this.repository.listarTodos();
  
     if (filtroStatus) {
       const statusNormalizado = filtroStatus.toUpperCase();
@@ -73,14 +76,14 @@ export class EntregasService {
     return todas;
   }
  
-  buscarPorId(id) {
-    const entrega = this.repository.buscarPorId(Number(id));
+  async buscarPorId(id) {
+    const entrega = await this.repository.buscarPorId(Number(id));
     if (!entrega) throw new AppError('Entrega não encontrada.', 404);
     return entrega;
   }
  
-  avancarStatus(id) {
-    const entrega = this.buscarPorId(id);
+  async avancarStatus(id) {
+    const entrega = await this.buscarPorId(id);
  
     if (STATUS_FINAIS.includes(entrega.status)) {
       throw new AppError(`Não é possível avançar o status de uma entrega com status "${entrega.status}".`);
@@ -97,8 +100,8 @@ export class EntregasService {
     return this.repository.atualizar(entrega.id, { status: proximoStatus, historico });
   }
  
-  cancelarEntrega(id) {
-    const entrega = this.buscarPorId(id);
+  async cancelarEntrega(id) {
+    const entrega = await this.buscarPorId(id);
  
     if (entrega.status === STATUS.ENTREGUE) {
       throw new AppError('Não é possível cancelar uma entrega já finalizada (ENTREGUE).');
@@ -113,19 +116,19 @@ export class EntregasService {
     return this.repository.atualizar(entrega.id, { status: STATUS.CANCELADA, historico });
   }
  
-  buscarHistorico(id) {
-    const entrega = this.buscarPorId(id);
+  async buscarHistorico(id) {
+    const entrega = await this.buscarPorId(id);
     return entrega.historico;
   }
  
-  atribuirMotorista(id, motoristaId) {
-    const entrega = this.buscarPorId(id);
+  async atribuirMotorista(id, motoristaId) {
+    const entrega = await this.buscarPorId(id);
  
     if (entrega.status !== STATUS.CRIADA) {
       throw new AppError(`Não é possível atribuir motorista a uma entrega com status "${entrega.status}".`);
     }
  
-    const motorista = this.motoristasRepository.buscarPorId(Number(motoristaId));
+    const motorista = await this.motoristasRepository.buscarPorId(Number(motoristaId));
     if (!motorista) throw new AppError('Motorista não encontrado.', 404);
  
     if (motorista.status === 'INATIVO') {
@@ -141,11 +144,11 @@ export class EntregasService {
     return this.repository.atualizar(entrega.id, { motoristaId: motorista.id, historico });
   }
  
-  listarPorMotorista(motoristaId, filtroStatus) {
-    const motorista = this.motoristasRepository.buscarPorId(Number(motoristaId));
+  async listarPorMotorista(motoristaId, filtroStatus) {
+    const motorista = await this.motoristasRepository.buscarPorId(Number(motoristaId));
     if (!motorista) throw new AppError('Motorista não encontrado.', 404);
  
-    let entregas = this.repository.listarTodos().filter((e) => e.motoristaId === Number(motoristaId));
+    let entregas = (await this.repository.listarTodos()).filter((e) => e.motoristaId === Number(motoristaId));
  
     if (filtroStatus) {
       const statusNormalizado = filtroStatus.toUpperCase();

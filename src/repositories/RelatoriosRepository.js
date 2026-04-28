@@ -1,35 +1,56 @@
 // src/repositories/RelatoriosRepository.js
+//
+// RF-03 (Atividade 08): Reimplementação com PrismaClient.
+// groupBy substitui a query SQL "GROUP BY / HAVING".
 
 export class RelatoriosRepository {
-  constructor(db) {
-    this.db = db;
+  /**
+   * @param {import('@prisma/client').PrismaClient} prisma
+   */
+  constructor(prisma) {
+    this.prisma = prisma;
   }
 
-  entregasPorStatus() {
-    const rows = this.db
-      .prepare('SELECT status, COUNT(*) AS total FROM entregas GROUP BY status')
-      .all();
+  async entregasPorStatus() {
+    // Agrupa entregas por status e conta cada grupo
+    const grupos = await this.prisma.entrega.groupBy({
+      by: ['status'],
+      _count: { id: true },
+    });
 
     const resultado = {};
-    for (const row of rows) {
-      resultado[row.status] = row.total;
+    for (const grupo of grupos) {
+      resultado[grupo.status] = grupo._count.id;
     }
     return resultado;
   }
 
-  motoristasAtivos() {
-    return this.db
-      .prepare(
-        `SELECT
-           m.id   AS motoristaId,
-           m.nome AS nome,
-           COUNT(e.id) AS entregasEmAberto
-         FROM motoristas m
-         JOIN entregas e ON e.motorista_id = m.id
-         WHERE e.status NOT IN ('ENTREGUE', 'CANCELADA')
-         GROUP BY m.id, m.nome
-         HAVING COUNT(e.id) > 0`
-      )
-      .all();
+  async motoristasAtivos() {
+    // Retorna motoristas com ao menos uma entrega em aberto
+    // (status diferente de ENTREGUE e CANCELADA) — equivale ao
+    // JOIN + HAVING COUNT(...) > 0 da query SQL original.
+    const motoristas = await this.prisma.motorista.findMany({
+      where: {
+        entregas: {
+          some: { status: { notIn: ['ENTREGUE', 'CANCELADA'] } },
+        },
+      },
+      include: {
+        _count: {
+          select: {
+            // Conta apenas as entregas em aberto daquele motorista
+            entregas: {
+              where: { status: { notIn: ['ENTREGUE', 'CANCELADA'] } },
+            },
+          },
+        },
+      },
+    });
+
+    return motoristas.map((m) => ({
+      motoristaId: m.id,
+      nome: m.nome,
+      entregasEmAberto: m._count.entregas,
+    }));
   }
 }

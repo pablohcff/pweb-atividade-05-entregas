@@ -1,89 +1,114 @@
 // src/repositories/EntregasRepository.js
+//
+// RF-03 (Atividade 08): Reimplementação com PrismaClient.
+// Os contratos de interface (nomes de métodos e assinaturas) foram mantidos
+// idênticos aos da Atividade 07 — os Services não precisam de nenhuma
+// alteração de lógica, apenas de await (ver comentário nos Services).
+//
+// Mapeamento de campos antigo → Prisma:
+//   motorista_id  → motoristaId  (camelCase do Prisma)
+//   eventos_entrega.data (TEXT) → EventoEntrega.createdAt (DateTime)
+//     • ao criar: new Date(evento.data) → createdAt
+//     • ao ler  : e.createdAt.toISOString() → data
 
 export class EntregasRepository {
-  constructor(db) {
-    this.db = db;
+  /**
+   * @param {import('@prisma/client').PrismaClient} prisma
+   */
+  constructor(prisma) {
+    this.prisma = prisma;
   }
 
-  _getEventos(entregaId) {
-    return this.db
-      .prepare('SELECT data, descricao FROM eventos_entrega WHERE entrega_id = ? ORDER BY id')
-      .all(entregaId);
-  }
-
-  _mapRow(row, eventos) {
+  // Transforma o objeto Prisma no formato esperado pelos Services.
+  // Expõe createdAt/updatedAt para que o controller possa filtrar por data
+  // sem precisar alterar o Service.
+  _mapEntrega(entrega) {
     return {
-      id: row.id,
-      descricao: row.descricao,
-      origem: row.origem,
-      destino: row.destino,
-      status: row.status,
-      motoristaId: row.motorista_id,
-      historico: eventos.map((e) => ({ data: e.data, descricao: e.descricao })),
+      id: entrega.id,
+      descricao: entrega.descricao,
+      origem: entrega.origem,
+      destino: entrega.destino,
+      status: entrega.status,
+      motoristaId: entrega.motoristaId,
+      createdAt: entrega.createdAt,  // exposto para filtro de datas (RF-05)
+      updatedAt: entrega.updatedAt,
+      historico: (entrega.historico ?? []).map((e) => ({
+        // "data" é o campo que o Service espera; mapeado de createdAt do Prisma
+        data: e.createdAt.toISOString(),
+        descricao: e.descricao,
+      })),
     };
   }
 
-  listarTodos() {
-    const rows = this.db.prepare('SELECT * FROM entregas').all();
-    return rows.map((row) => this._mapRow(row, this._getEventos(row.id)));
+  async listarTodos() {
+    const entregas = await this.prisma.entrega.findMany({
+      include: { historico: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return entregas.map((e) => this._mapEntrega(e));
   }
 
-  buscarPorId(id) {
-    const row = this.db.prepare('SELECT * FROM entregas WHERE id = ?').get(id);
-    if (!row) return null;
-    return this._mapRow(row, this._getEventos(row.id));
+  async buscarPorId(id) {
+    // RF-03 / cenário de teste: retorna a entrega com historico via include
+    const entrega = await this.prisma.entrega.findUnique({
+      where: { id },
+      include: { historico: { orderBy: { createdAt: 'asc' } } },
+    });
+    return entrega ? this._mapEntrega(entrega) : null;
   }
 
-  criar(dados) {
+  async criar(dados) {
     const { descricao, origem, destino, status, motoristaId, historico } = dados;
 
-    const result = this.db
-      .prepare('INSERT INTO entregas (descricao, origem, destino, status, motorista_id) VALUES (?, ?, ?, ?, ?)')
-      .run(descricao, origem, destino, status, motoristaId ?? null);
+    const entrega = await this.prisma.entrega.create({
+      data: {
+        descricao,
+        origem,
+        destino,
+        status,
+        motoristaId: motoristaId ?? null,
+        historico: {
+          // Preserva o timestamp fornecido pelo Service (evento.data)
+          create: historico.map((e) => ({
+            descricao: e.descricao,
+            createdAt: new Date(e.data),
+          })),
+        },
+      },
+      include: { historico: { orderBy: { createdAt: 'asc' } } },
+    });
 
-    const entregaId = Number(result.lastInsertRowid);
-
-    const insertEvento = this.db.prepare(
-      'INSERT INTO eventos_entrega (entrega_id, data, descricao) VALUES (?, ?, ?)'
-    );
-    for (const evento of historico) {
-      insertEvento.run(entregaId, evento.data, evento.descricao);
-    }
-
-    return this.buscarPorId(entregaId);
+    return this._mapEntrega(entrega);
   }
 
-  atualizar(id, dados) {
+  async atualizar(id, dados) {
     const { status, motoristaId, historico } = dados;
 
-    const updates = [];
-    const values = [];
-
-    if (status !== undefined) {
-      updates.push('status = ?');
-      values.push(status);
-    }
-    if (motoristaId !== undefined) {
-      updates.push('motorista_id = ?');
-      values.push(motoristaId);
-    }
-
-    if (updates.length > 0) {
-      values.push(id);
-      this.db.prepare(`UPDATE entregas SET ${updates.join(', ')} WHERE id = ?`).run(...values);
-    }
+    const dataUpdate = {};
+    if (status !== undefined) dataUpdate.status = status;
+    if (motoristaId !== undefined) dataUpdate.motoristaId = motoristaId;
 
     if (historico !== undefined) {
-      this.db.prepare('DELETE FROM eventos_entrega WHERE entrega_id = ?').run(id);
-      const insertEvento = this.db.prepare(
-        'INSERT INTO eventos_entrega (entrega_id, data, descricao) VALUES (?, ?, ?)'
-      );
-      for (const evento of historico) {
-        insertEvento.run(id, evento.data, evento.descricao);
-      }
+      // Substitui todo o histórico em uma transação atômica:
+      // apaga os eventos existentes e cria os novos.
+      // onDelete: Cascade no schema garante remoção automática se a entrega
+      // fosse deletada, mas aqui fazemos a substituição explicitamente.
+      dataUpdate.historico = {
+        deleteMany: {},
+        create: historico.map((e) => ({
+          descricao: e.descricao,
+          createdAt: new Date(e.data),
+        })),
+      };
     }
 
-    return this.buscarPorId(id);
+    const entrega = await this.prisma.entrega.update({
+      where: { id },
+      data: dataUpdate,
+      include: { historico: { orderBy: { createdAt: 'asc' } } },
+    });
+
+    return this._mapEntrega(entrega);
   }
 }
 

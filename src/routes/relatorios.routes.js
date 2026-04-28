@@ -5,8 +5,8 @@ import { Router } from 'express';
 export function relatoriosRouter(controller) {
   const router = Router();
 
-  router.get('/entregas-por-status', (req, res) => controller.entregasPorStatus(req, res));
-  router.get('/motoristas-ativos', (req, res) => controller.motoristasAtivos(req, res));
+  router.get('/entregas-por-status', (req, res, next) => controller.entregasPorStatus(req, res).catch(next));
+  router.get('/motoristas-ativos',   (req, res, next) => controller.motoristasAtivos(req, res).catch(next));
 
   return router;
 }

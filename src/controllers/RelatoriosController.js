@@ -5,13 +5,13 @@ export class RelatoriosController {
     this.repository = relatoriosRepository;
   }
 
-  entregasPorStatus(req, res) {
-    const resultado = this.repository.entregasPorStatus();
+  async entregasPorStatus(req, res) {
+    const resultado = await this.repository.entregasPorStatus();
     return res.status(200).json(resultado);
   }
 
-  motoristasAtivos(req, res) {
-    const motoristas = this.repository.motoristasAtivos();
+  async motoristasAtivos(req, res) {
+    const motoristas = await this.repository.motoristasAtivos();
     return res.status(200).json(motoristas);
   }
 }

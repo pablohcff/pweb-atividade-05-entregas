@@ -1,6 +1,281 @@
-@baseUrl = http://localhost:3001/api/entregas
-@apiUrl = http://localhost:3001/api
+@baseUrl       = http://localhost:3002/api/entregas
+@apiUrl        = http://localhost:3002/api
 @motoristasUrl = {{apiUrl}}/motoristas
+@relatoriosUrl = {{apiUrl}}/relatorios
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BEFORE RUNNING: node prisma/seed.js   (popula o banco com 3 motoristas e
+#                                        10 entregas de 2025–2026)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MOTORISTAS
+# ─────────────────────────────────────────────────────────────────────────────
+
+### M-01 ▶ Criar motorista (válido)
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "João Souza",
+  "cpf": "444.444.444-44",
+  "placaVeiculo": "JKL-3456"
+}
+
+###
+
+### M-02 ▶ Criar motorista com CPF duplicado (409 esperado)
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "Outro Nome",
+  "cpf": "444.444.444-44",
+  "placaVeiculo": "ZZZ-9999"
+}
+
+###
+
+### M-03 ▶ Criar motorista sem campo obrigatório (400 esperado)
+POST {{motoristasUrl}}
+Content-Type: application/json
+
+{
+  "nome": "Sem Placa"
+}
+
+###
+
+### M-04 ▶ Listar todos os motoristas
+GET {{motoristasUrl}}
+
+###
+
+### M-05 ▶ Buscar motorista por ID (ajuste o ID conforme o seed)
+GET {{motoristasUrl}}/1
+
+###
+
+### M-06 ▶ Motorista inexistente (404 esperado)
+GET {{motoristasUrl}}/9999
+
+###
+
+### M-07 ▶ Listar entregas de um motorista
+GET {{motoristasUrl}}/1/entregas
+
+###
+
+### M-08 ▶ Listar entregas de um motorista filtrando por status
+GET {{motoristasUrl}}/1/entregas?status=EM_TRANSITO
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ENTREGAS — criação e consulta básica
+# ─────────────────────────────────────────────────────────────────────────────
+
+### E-01 ▶ Criar entrega válida
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Notebook ASUS",
+  "origem": "Teresina",
+  "destino": "São Luís"
+}
+
+###
+
+### E-02 ▶ Campos obrigatórios ausentes (400 esperado)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Sem origem e destino"
+}
+
+###
+
+### E-03 ▶ Origem igual ao destino (400 esperado)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "descricao": "Entrega local",
+  "origem": "Recife",
+  "destino": "Recife"
+}
+
+###
+
+### E-04 ▶ Buscar entrega por ID — retorna historico via include (Prisma)
+# Cenário de teste do professor: GET /api/entregas/:id retorna historico incluído
+GET {{baseUrl}}/1
+
+###
+
+### E-05 ▶ Entrega inexistente (404 esperado)
+GET {{baseUrl}}/9999
+
+###
+
+### E-06 ▶ Buscar histórico de uma entrega
+GET {{baseUrl}}/1/historico
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF-04 — Paginação
+# Seed tem 10 entregas; respostas devem conter: data, total, page, limit, totalPages
+# ─────────────────────────────────────────────────────────────────────────────
+
+### P-01 ▶ Página 1, limite 3  →  data[3], total=10, totalPages=4
+GET {{baseUrl}}?page=1&limit=3
+
+###
+
+### P-02 ▶ Página 2, limite 3  →  data[3], page=2
+GET {{baseUrl}}?page=2&limit=3
+
+###
+
+### P-03 ▶ Página 4, limite 3  →  data[1] (última página)
+GET {{baseUrl}}?page=4&limit=3
+
+###
+
+### P-04 ▶ Página sem resultados  →  data[], total=10, page=99
+GET {{baseUrl}}?page=99&limit=10
+
+###
+
+### P-05 ▶ limit > 50 → truncado para 50 (máximo)
+GET {{baseUrl}}?limit=100
+
+###
+
+### P-06 ▶ Padrões (page=1, limit=10)  →  data[10], totalPages=1
+GET {{baseUrl}}
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF-05 — Filtro por intervalo de datas
+# Seed:  entregas 1–6 em 2025  |  entregas 7–10 em 2026
+# ─────────────────────────────────────────────────────────────────────────────
+
+### D-01 ▶ Somente 2025  →  total=6
+GET {{baseUrl}}?createdDe=2025-01-01&createdAte=2025-12-31
+
+###
+
+### D-02 ▶ Somente 2026  →  total=4
+GET {{baseUrl}}?createdDe=2026-01-01
+
+###
+
+### D-03 ▶ Apenas jan/2025  →  total=1  (Notebook Dell)
+GET {{baseUrl}}?createdDe=2025-01-01&createdAte=2025-01-31
+
+###
+
+### D-04 ▶ Data + status combinados  (EM_TRANSITO em 2025)  →  total=2
+GET {{baseUrl}}?status=EM_TRANSITO&createdDe=2025-01-01&createdAte=2025-12-31
+
+###
+
+### D-05 ▶ Combinação com paginação  →  totalPages calculado sobre o filtrado
+GET {{baseUrl}}?createdDe=2025-01-01&createdAte=2025-12-31&page=1&limit=3
+
+###
+
+# Query do professor: exemplos exatos do enunciado
+### D-06 ▶ Filtro de datas do enunciado (RF-05 exemplo)
+GET {{baseUrl}}?createdDe=2025-01-01&createdAte=2025-06-30
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF-04 + RF-05 — Queries exatas do enunciado
+# ─────────────────────────────────────────────────────────────────────────────
+
+### Q-01 ▶ GET /api/entregas?status=EM_TRANSITO&page=1&limit=5
+GET {{baseUrl}}?status=EM_TRANSITO&page=1&limit=5
+
+###
+
+### Q-02 ▶ GET /api/entregas?motoristaId=1&status=CRIADA&page=1&limit=10
+# (motoristaId filtrado pelo service via listarPorMotorista não se aplica aqui;
+#  motoristaId como query param em GET /entregas não é suportado diretamente —
+#  use GET /motoristas/:id/entregas para isso)
+GET {{motoristasUrl}}/1/entregas?status=CRIADA
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Transições de status e atribuição de motorista
+# ─────────────────────────────────────────────────────────────────────────────
+
+### S-01 ▶ Atribuir motorista 1 à entrega (ajuste IDs após seed)
+PATCH {{baseUrl}}/7/atribuir
+Content-Type: application/json
+
+{
+  "motoristaId": 1
+}
+
+###
+
+### S-02 ▶ Avançar status (CRIADA → EM_TRANSITO)
+PATCH {{baseUrl}}/7/avancar
+
+###
+
+### S-03 ▶ Avançar novamente (EM_TRANSITO → ENTREGUE)
+PATCH {{baseUrl}}/7/avancar
+
+###
+
+### S-04 ▶ Tentar avançar entrega ENTREGUE (400 esperado)
+PATCH {{baseUrl}}/7/avancar
+
+###
+
+### S-05 ▶ Cancelar entrega (ajuste ID para uma CRIADA ou EM_TRANSITO)
+PATCH {{baseUrl}}/9/cancelar
+
+###
+
+### S-06 ▶ Cancelar entrega já ENTREGUE (400 esperado)
+PATCH {{baseUrl}}/1/cancelar
+
+###
+
+### S-07 ▶ Atribuir motorista INATIVO (400 esperado — motorista 3 é INATIVO no seed)
+PATCH {{baseUrl}}/8/atribuir
+Content-Type: application/json
+
+{
+  "motoristaId": 3
+}
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Relatórios
+# ─────────────────────────────────────────────────────────────────────────────
+
+### R-01 ▶ Entregas por status
+GET {{relatoriosUrl}}/entregas-por-status
+
+###
+
+### R-02 ▶ Motoristas com entregas em aberto
+GET {{relatoriosUrl}}/motoristas-ativos
+
+###
+
 
 ### 🔹 1. Criar entrega (válida)
 POST {{baseUrl}}

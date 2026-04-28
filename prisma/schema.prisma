@@ -1,0 +1,56 @@
+// prisma/schema.prisma
+// RF-01: Schema com models, relações, enums e timestamps automáticos
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Nota sobre enums ────────────────────────────────────────────────────────
+// O SQLite não suporta tipos enum nativos. No Prisma com SQLite os status são
+// armazenados como String e a validação é feita na camada de aplicação
+// (utils/status.js), preservando os mesmos valores do schema de referência:
+//   StatusEntrega  : CRIADA | EM_TRANSITO | ENTREGUE | CANCELADA
+//   StatusMotorista: ATIVO  | INATIVO
+
+// ── Models ──────────────────────────────────────────────────────────────────
+
+model Motorista {
+  id           Int       @id @default(autoincrement())
+  nome         String
+  cpf          String    @unique
+  placaVeiculo String
+  // Valores válidos: ATIVO | INATIVO  (@default emula enum)
+  status       String    @default("ATIVO")
+  entregas     Entrega[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Entrega {
+  id          Int             @id @default(autoincrement())
+  descricao   String
+  origem      String
+  destino     String
+  // Valores válidos: CRIADA | EM_TRANSITO | ENTREGUE | CANCELADA  (@default emula enum)
+  status      String          @default("CRIADA")
+  motorista   Motorista?      @relation(fields: [motoristaId], references: [id])
+  motoristaId Int?
+  // RF-01: relação 1:N com onDelete Cascade — ao deletar a Entrega,
+  // todos os seus EventoEntrega são removidos automaticamente.
+  historico   EventoEntrega[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model EventoEntrega {
+  id        Int      @id @default(autoincrement())
+  descricao String
+  entrega   Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  entregaId Int
+  createdAt DateTime @default(now())
+}
