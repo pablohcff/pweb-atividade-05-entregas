@@ -1,0 +1,20 @@
+<% const msgs_sucesso = flash('sucesso'); %>
+<% const msgs_erro   = flash('erro'); %>
+
+<% if (msgs_sucesso.length > 0) { %>
+  <% msgs_sucesso.forEach(function(msg) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% }); %>
+<% } %>
+
+<% if (msgs_erro.length > 0) { %>
+  <% msgs_erro.forEach(function(msg) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% }); %>
+<% } %>

@@ -1,0 +1,62 @@
+<%- include('../layouts/base', { title: 'Entrega #' + entrega.id }) %>
+<%- include('../partials/flash') %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Entrega #<%= entrega.id %></h2>
+  <a href="/painel/entregas" class="btn btn-outline-secondary">← Voltar</a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <p><strong>Descrição:</strong> <%= entrega.descricao %></p>
+    <p><strong>Origem:</strong> <%= entrega.origem %></p>
+    <p><strong>Destino:</strong> <%= entrega.destino %></p>
+    <p>
+      <strong>Status:</strong>
+      <%
+        const badgeMap = {
+          CRIADA:      'bg-primary',
+          EM_TRANSITO: 'bg-warning text-dark',
+          ENTREGUE:    'bg-success',
+          CANCELADA:   'bg-danger',
+        };
+        const badge = badgeMap[entrega.status] || 'bg-secondary';
+      %>
+      <span class="badge <%= badge %>"><%= entrega.status %></span>
+    </p>
+    <p><strong>Motorista:</strong> <%= entrega.motorista ? entrega.motorista.nome : '—' %></p>
+    <p><strong>Criado em:</strong> <%= new Date(entrega.createdAt).toLocaleString('pt-BR') %></p>
+  </div>
+</div>
+
+<!-- Ações de status via formulários com method-override -->
+<% if (entrega.status !== 'ENTREGUE' && entrega.status !== 'CANCELADA') { %>
+  <div class="d-flex gap-2 mb-4">
+    <form method="POST" action="/painel/entregas/<%= entrega.id %>/avancar?_method=PATCH">
+      <button type="submit" class="btn btn-success">Avançar Status</button>
+    </form>
+    <form method="POST" action="/painel/entregas/<%= entrega.id %>/cancelar?_method=PATCH">
+      <button type="submit" class="btn btn-danger">Cancelar Entrega</button>
+    </form>
+  </div>
+<% } %>
+
+<h4>Histórico de Eventos</h4>
+<table class="table table-sm table-bordered">
+  <thead class="table-light">
+    <tr>
+      <th>Data/Hora</th>
+      <th>Descrição</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% entrega.historico.forEach(function(ev) { %>
+      <tr>
+        <td><%= new Date(ev.data).toLocaleString('pt-BR') %></td>
+        <td><%= ev.descricao %></td>
+      </tr>
+    <% }); %>
+  </tbody>
+</table>
+
+<%- include('../layouts/footer') %>

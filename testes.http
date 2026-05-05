@@ -80,7 +80,7 @@ POST {{baseUrl}}
 Content-Type: application/json
 
 {
-  "descricao": "Notebook ASUS",
+  "descricao": "Notebook ASUl",
   "origem": "Teresina",
   "destino": "São Luís"
 }
@@ -222,7 +222,7 @@ PATCH {{baseUrl}}/7/atribuir
 Content-Type: application/json
 
 {
-  "motoristaId": 1
+  "motoristaId": 2
 }
 
 ###

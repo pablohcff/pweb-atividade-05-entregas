@@ -1,0 +1,80 @@
+<%- include('../layouts/base', { title: 'Entregas' }) %>
+<%- include('../partials/flash') %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Entregas</h2>
+  <a href="/painel/entregas/nova" class="btn btn-primary">+ Nova Entrega</a>
+</div>
+
+<!-- Filtro por status -->
+<form method="GET" action="/painel/entregas" class="mb-3 d-flex gap-2">
+  <select name="status" class="form-select w-auto">
+    <option value="">Todos os status</option>
+    <option value="CRIADA"      <%= filtroStatus === 'CRIADA'      ? 'selected' : '' %>>CRIADA</option>
+    <option value="EM_TRANSITO" <%= filtroStatus === 'EM_TRANSITO' ? 'selected' : '' %>>EM_TRANSITO</option>
+    <option value="ENTREGUE"    <%= filtroStatus === 'ENTREGUE'    ? 'selected' : '' %>>ENTREGUE</option>
+    <option value="CANCELADA"   <%= filtroStatus === 'CANCELADA'   ? 'selected' : '' %>>CANCELADA</option>
+  </select>
+  <button type="submit" class="btn btn-secondary">Filtrar</button>
+  <a href="/painel/entregas" class="btn btn-outline-secondary">Limpar</a>
+</form>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>#</th>
+      <th>Descrição</th>
+      <th>Origem</th>
+      <th>Destino</th>
+      <th>Status</th>
+      <th>Motorista</th>
+      <th>Criado em</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (entregas.length === 0) { %>
+      <tr><td colspan="8" class="text-center text-muted">Nenhuma entrega encontrada.</td></tr>
+    <% } %>
+    <% entregas.forEach(function(e) { %>
+      <tr>
+        <td><%= e.id %></td>
+        <td><%= e.descricao %></td>
+        <td><%= e.origem %></td>
+        <td><%= e.destino %></td>
+        <td>
+          <%
+            const badgeMap = {
+              CRIADA:      'bg-primary',
+              EM_TRANSITO: 'bg-warning text-dark',
+              ENTREGUE:    'bg-success',
+              CANCELADA:   'bg-danger',
+            };
+            const badge = badgeMap[e.status] || 'bg-secondary';
+          %>
+          <span class="badge <%= badge %>"><%= e.status %></span>
+        </td>
+        <td><%= e.motorista ? e.motorista.nome : '—' %></td>
+        <td><%= new Date(e.createdAt).toLocaleDateString('pt-BR') %></td>
+        <td><a href="/painel/entregas/<%= e.id %>" class="btn btn-sm btn-outline-primary">Ver</a></td>
+      </tr>
+    <% }); %>
+  </tbody>
+</table>
+
+<!-- Paginação -->
+<% if (totalPages > 1) { %>
+  <nav>
+    <ul class="pagination">
+      <% for (let p = 1; p <= totalPages; p++) { %>
+        <li class="page-item <%= p === page ? 'active' : '' %>">
+          <a class="page-link" href="/painel/entregas?page=<%= p %><%= filtroStatus ? '&status=' + filtroStatus : '' %>"><%= p %></a>
+        </li>
+      <% } %>
+    </ul>
+  </nav>
+<% } %>
+
+<p class="text-muted small">Total: <%= total %> entrega(s)</p>
+
+<%- include('../layouts/footer') %>

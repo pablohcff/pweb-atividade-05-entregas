@@ -1,0 +1,31 @@
+<%- include('../layouts/base', { title: 'Nova Entrega' }) %>
+<%- include('../partials/flash') %>
+
+<h2 class="mb-3">Nova Entrega</h2>
+
+<% if (erros && erros.length > 0) { %>
+  <% erros.forEach(function(msg) { %>
+    <div class="alert alert-danger"><%= msg %></div>
+  <% }); %>
+<% } %>
+
+<form method="POST" action="/painel/entregas" class="col-md-6">
+  <div class="mb-3">
+    <label class="form-label">Descrição</label>
+    <input type="text" name="descricao" class="form-control" value="<%= valores.descricao || '' %>" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Origem</label>
+    <input type="text" name="origem" class="form-control" value="<%= valores.origem || '' %>" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Destino</label>
+    <input type="text" name="destino" class="form-control" value="<%= valores.destino || '' %>" required>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Criar</button>
+    <a href="/painel/entregas" class="btn btn-secondary">Cancelar</a>
+  </div>
+</form>
+
+<%- include('../layouts/footer') %>

@@ -1,0 +1,31 @@
+<%- include('../layouts/base', { title: 'Novo Motorista' }) %>
+<%- include('../partials/flash') %>
+
+<h2 class="mb-3">Novo Motorista</h2>
+
+<% if (erros && erros.length > 0) { %>
+  <% erros.forEach(function(msg) { %>
+    <div class="alert alert-danger"><%= msg %></div>
+  <% }); %>
+<% } %>
+
+<form method="POST" action="/painel/motoristas" class="col-md-6">
+  <div class="mb-3">
+    <label class="form-label">Nome</label>
+    <input type="text" name="nome" class="form-control" value="<%= valores.nome || '' %>" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">CPF</label>
+    <input type="text" name="cpf" class="form-control" value="<%= valores.cpf || '' %>" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Placa do Veículo</label>
+    <input type="text" name="placaVeiculo" class="form-control" value="<%= valores.placaVeiculo || '' %>" required>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Cadastrar</button>
+    <a href="/painel/motoristas" class="btn btn-secondary">Cancelar</a>
+  </div>
+</form>
+
+<%- include('../layouts/footer') %>

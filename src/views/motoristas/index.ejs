@@ -1,0 +1,39 @@
+<%- include('../layouts/base', { title: 'Motoristas' }) %>
+<%- include('../partials/flash') %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Motoristas</h2>
+  <a href="/painel/motoristas/novo" class="btn btn-primary">+ Novo Motorista</a>
+</div>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>#</th>
+      <th>Nome</th>
+      <th>CPF</th>
+      <th>Placa</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (motoristas.length === 0) { %>
+      <tr><td colspan="5" class="text-center text-muted">Nenhum motorista cadastrado.</td></tr>
+    <% } %>
+    <% motoristas.forEach(function(m) { %>
+      <tr>
+        <td><%= m.id %></td>
+        <td><%= m.nome %></td>
+        <td><%= m.cpf %></td>
+        <td><%= m.placaVeiculo %></td>
+        <td>
+          <span class="badge <%= m.status === 'ATIVO' ? 'bg-success' : 'bg-secondary' %>">
+            <%= m.status %>
+          </span>
+        </td>
+      </tr>
+    <% }); %>
+  </tbody>
+</table>
+
+<%- include('../layouts/footer') %>
