@@ -7,11 +7,7 @@ export class EntregasController {
     const entrega = await this.service.criarEntrega(req.body);
     return res.status(201).json(entrega);
   }
-
   // RF-04: paginação via page/limit; RF-05: filtro por intervalo de datas.
-  // A listagem delega a filtragem por status ao Service (lógica de negócio
-  // inalterada). O filtro de datas e a paginação são responsabilidade do
-  // controller, pois são requisitos de apresentação/transporte, não de negócio.
   async listar(req, res) {
     const { status, page = 1, limit = 10, createdDe, createdAte } = req.query;
 

@@ -6,19 +6,6 @@
   <a href="/painel/entregas/nova" class="btn btn-primary">+ Nova Entrega</a>
 </div>
 
-<!-- Filtro por status -->
-<form method="GET" action="/painel/entregas" class="mb-3 d-flex gap-2">
-  <select name="status" class="form-select w-auto">
-    <option value="">Todos os status</option>
-    <option value="CRIADA"      <%= filtroStatus === 'CRIADA'      ? 'selected' : '' %>>CRIADA</option>
-    <option value="EM_TRANSITO" <%= filtroStatus === 'EM_TRANSITO' ? 'selected' : '' %>>EM_TRANSITO</option>
-    <option value="ENTREGUE"    <%= filtroStatus === 'ENTREGUE'    ? 'selected' : '' %>>ENTREGUE</option>
-    <option value="CANCELADA"   <%= filtroStatus === 'CANCELADA'   ? 'selected' : '' %>>CANCELADA</option>
-  </select>
-  <button type="submit" class="btn btn-secondary">Filtrar</button>
-  <a href="/painel/entregas" class="btn btn-outline-secondary">Limpar</a>
-</form>
-
 <table class="table table-bordered table-hover">
   <thead class="table-dark">
     <tr>
