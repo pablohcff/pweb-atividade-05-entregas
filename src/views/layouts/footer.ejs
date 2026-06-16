@@ -1,5 +1,33 @@
 </div><!-- /container -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+  // RF-05: redireciona para /login se não houver token
+  if (!localStorage.getItem('accessToken')) {
+    window.location.href = '/login';
+  }
+
+  // RF-05: interceptor — injeta Authorization: Bearer <token> em todas as requisições Axios
+  axios.interceptors.request.use(function (config) {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers['Authorization'] = 'Bearer ' + token;
+    }
+    return config;
+  });
+
+  // RF-05: interceptor de resposta — redireciona para /login em caso de 401
+  axios.interceptors.response.use(
+    function (response) { return response; },
+    function (error) {
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    }
+  );
+</script>
 </body>
 </html>

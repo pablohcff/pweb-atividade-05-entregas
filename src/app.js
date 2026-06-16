@@ -4,10 +4,11 @@ import express from 'express';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { entregasController, motoristasController, relatoriosController, painelEntregasController, painelMotoristasController } from './bootstrap.js';
+import { entregasController, motoristasController, relatoriosController, authController, painelEntregasController, painelMotoristasController } from './bootstrap.js';
 import { entregasRouter } from './routes/entregas.routes.js';
 import { motoristasRouter } from './routes/motoristas.routes.js';
 import { relatoriosRouter } from './routes/relatorios.routes.js';
+import { authRouter } from './routes/auth.routes.js';
 import { painelEntregasRouter } from './routes/painel/entregas.routes.js';
 import { painelMotoristasRouter } from './routes/painel/motoristas.routes.js';
 import { AppError } from './utils/AppError.js';
@@ -42,10 +43,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── API REST (preservada integralmente) ───────────────────────────────────────
+// ── Auth (RF-01) ──────────────────────────────────────────────────────────────
+app.use('/api/auth', authRouter(authController));
+
+// ── API REST ──────────────────────────────────────────────────────────────────
 app.use('/api/entregas',   entregasRouter(entregasController));
 app.use('/api/motoristas', motoristasRouter(motoristasController));
 app.use('/api/relatorios', relatoriosRouter(relatoriosController));
+
+// ── Login page (RF-05) ────────────────────────────────────────────────────────
+app.get('/login', (req, res) => res.render('auth/login', { title: 'Login' }));
 
 // ── Painel SSR ────────────────────────────────────────────────────────────────
 app.use('/painel/entregas',   painelEntregasRouter(painelEntregasController));

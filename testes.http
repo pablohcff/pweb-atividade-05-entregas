@@ -2,11 +2,209 @@
 @apiUrl        = http://localhost:3002/api
 @motoristasUrl = {{apiUrl}}/motoristas
 @relatoriosUrl = {{apiUrl}}/relatorios
+@authUrl       = {{apiUrl}}/auth
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BEFORE RUNNING: node prisma/seed.js   (popula o banco com 3 motoristas e
 #                                        10 entregas de 2025–2026)
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTH — RF-01 / RF-02 / RF-03
+# ─────────────────────────────────────────────────────────────────────────────
+
+### A-01 ▶ Registrar usuário OPERADOR (201 esperado)
+POST {{authUrl}}/registrar
+Content-Type: application/json
+
+{
+  "nome": "Operador Teste",
+  "email": "operador@teste.com",
+  "senha": "senha123"
+}
+
+###
+
+### A-02 ▶ Registrar usuário com email duplicado (409 esperado)
+POST {{authUrl}}/registrar
+Content-Type: application/json
+
+{
+  "nome": "Outro Nome",
+  "email": "operador@teste.com",
+  "senha": "outrasenha"
+}
+
+###
+
+### A-03 ▶ Registrar campos obrigatórios ausentes (400 esperado)
+POST {{authUrl}}/registrar
+Content-Type: application/json
+
+{
+  "nome": "Sem Email"
+}
+
+###
+
+### A-04 ▶ Login com credenciais corretas → retorna accessToken (200 esperado)
+# Copie o accessToken retornado e defina @tokenOperador abaixo
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "operador@teste.com",
+  "senha": "senha123"
+}
+
+###
+
+### A-05 ▶ Login com senha incorreta (401 esperado)
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "operador@teste.com",
+  "senha": "senhaerrada"
+}
+
+###
+
+### A-06 ▶ Registrar usuário GESTOR (para testar RBAC)
+# Após registrar, altere manualmente o papel no banco para GESTOR:
+#   UPDATE Usuario SET papel = 'GESTOR' WHERE email = 'gestor@teste.com';
+POST {{authUrl}}/registrar
+Content-Type: application/json
+
+{
+  "nome": "Gestor Teste",
+  "email": "gestor@teste.com",
+  "senha": "senha123"
+}
+
+###
+
+### A-07 ▶ Login como gestor → copie o token para @tokenGestor
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "gestor@teste.com",
+  "senha": "senha123"
+}
+
+###
+
+# ── Defina os tokens após executar A-04 e A-07 ────────────────────────────────
+@tokenOperador = COLE_AQUI_O_TOKEN_DO_OPERADOR
+@tokenGestor   = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywibm9tZSI6Ikdlc3RvciBUZXN0ZSIsImVtYWlsIjoiZ2VzdG9yQHRlc3RlLmNvbSIsInBhcGVsIjoiT1BFUkFET1IiLCJpYXQiOjE3ODE1ODQyNzAsImV4cCI6MTc4MTYxMzA3MH0.eQnyNRNYAHKCl1v3ExdG6RhWrk2q-nL1hDfJTUtKU9I
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF-02 — Middleware autenticar
+# ─────────────────────────────────────────────────────────────────────────────
+
+### A-08 ▶ GET /api/entregas sem token → 401 "Token não fornecido"
+GET {{baseUrl}}
+
+###
+
+### A-09 ▶ GET /api/entregas com token inválido → 401 "Token inválido"
+GET {{baseUrl}}
+Authorization: Bearer tokeninvalidoqualquer
+
+###
+
+### A-10 ▶ GET /api/entregas com token válido (OPERADOR) → 200
+GET {{baseUrl}}
+Authorization: Bearer {{tokenOperador}}
+
+###
+
+# Para testar token expirado: defina JWT_EXPIRES_IN=5s no .env,
+# faça login, aguarde 6 segundos e execute:
+### A-11 ▶ GET /api/entregas com token expirado → 401 "Token expirado"
+GET {{baseUrl}}
+Authorization: Bearer {{tokenOperador}}
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF-03 — RBAC
+# ─────────────────────────────────────────────────────────────────────────────
+
+### A-12 ▶ PATCH cancelar com OPERADOR → 403 "Acesso negado"
+PATCH {{baseUrl}}/1/cancelar
+Authorization: Bearer {{tokenOperador}}
+
+###
+
+### A-13 ▶ PATCH cancelar com GESTOR → 200 (sucesso)
+PATCH {{baseUrl}}/1/cancelar
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### A-14 ▶ POST /api/motoristas com OPERADOR → 403 "Acesso negado"
+POST {{motoristasUrl}}
+Content-Type: application/json
+Authorization: Bearer {{tokenOperador}}
+
+{
+  "nome": "Tentativa Operador",
+  "cpf": "999.999.999-99",
+  "placaVeiculo": "TST-0000"
+}
+
+###
+
+### A-15 ▶ POST /api/motoristas com GESTOR → 201
+POST {{motoristasUrl}}
+Content-Type: application/json
+Authorization: Bearer {{tokenGestor}}
+
+{
+  "nome": "Motorista do Gestor",
+  "cpf": "555.555.555-55",
+  "placaVeiculo": "GST-5555"
+}
+
+###
+
+### A-16 ▶ GET /api/relatorios com OPERADOR → 403 "Acesso negado"
+GET {{relatoriosUrl}}/entregas-por-status
+Authorization: Bearer {{tokenOperador}}
+
+###
+
+### A-17 ▶ GET /api/relatorios com GESTOR → 200
+GET {{relatoriosUrl}}/entregas-por-status
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF-04 Auth — criadorId registrado na entrega
+# ─────────────────────────────────────────────────────────────────────────────
+
+### A-18 ▶ Criar entrega autenticado → resposta deve conter criadorId
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{tokenOperador}}
+
+{
+  "descricao": "Entrega com criador",
+  "origem": "Fortaleza",
+  "destino": "Recife"
+}
+
+###
+
+### A-19 ▶ GET /api/entregas/:id → resposta deve conter criadorId
+GET {{baseUrl}}/1
+Authorization: Bearer {{tokenOperador}}
+
+###
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MOTORISTAS

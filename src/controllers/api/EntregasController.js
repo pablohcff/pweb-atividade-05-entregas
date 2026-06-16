@@ -4,7 +4,8 @@ export class EntregasController {
   }
 
   async criar(req, res) {
-    const entrega = await this.service.criarEntrega(req.body);
+    const criadorId = req.usuario?.id ?? null;
+    const entrega = await this.service.criarEntrega({ ...req.body, criadorId });
     return res.status(201).json(entrega);
   }
   // RF-04: paginação via page/limit; RF-05: filtro por intervalo de datas.

@@ -30,6 +30,7 @@ export class EntregasRepository {
       destino: entrega.destino,
       status: entrega.status,
       motoristaId: entrega.motoristaId,
+      criadorId: entrega.criadorId ?? null,  // RF-04 Auth
       createdAt: entrega.createdAt,  // exposto para filtro de datas (RF-05)
       updatedAt: entrega.updatedAt,
       historico: (entrega.historico ?? []).map((e) => ({
@@ -58,7 +59,7 @@ export class EntregasRepository {
   }
 
   async criar(dados) {
-    const { descricao, origem, destino, status, motoristaId, historico } = dados;
+    const { descricao, origem, destino, status, motoristaId, criadorId, historico } = dados;
 
     const entrega = await this.prisma.entrega.create({
       data: {
@@ -67,6 +68,7 @@ export class EntregasRepository {
         destino,
         status,
         motoristaId: motoristaId ?? null,
+        criadorId: criadorId ?? null,
         historico: {
           // Preserva o timestamp fornecido pelo Service (evento.data)
           create: historico.map((e) => ({

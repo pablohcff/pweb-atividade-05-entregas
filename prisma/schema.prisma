@@ -40,6 +40,9 @@ model Entrega {
   status      String          @default("CRIADA")
   motorista   Motorista?      @relation(fields: [motoristaId], references: [id])
   motoristaId Int?
+  // RF-04 Auth: usuário que criou a entrega
+  criador     Usuario?        @relation(fields: [criadorId], references: [id])
+  criadorId   Int?
   // RF-01: relação 1:N com onDelete Cascade — ao deletar a Entrega,
   // todos os seus EventoEntrega são removidos automaticamente.
   historico   EventoEntrega[]
@@ -53,4 +56,17 @@ model EventoEntrega {
   entrega   Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
   entregaId Int
   createdAt DateTime @default(now())
+}
+
+// RF-03 Auth: modelo de usuário com papel OPERADOR | GESTOR
+model Usuario {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  email     String    @unique
+  senhaHash String
+  // Valores válidos: OPERADOR | GESTOR
+  papel     String    @default("OPERADOR")
+  entregas  Entrega[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

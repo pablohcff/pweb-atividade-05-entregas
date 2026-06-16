@@ -39,7 +39,7 @@ export class EntregasService {
  
   // ─── casos de uso ────────────────────────────────────────────────────────────
  
-  async criarEntrega({ descricao, origem, destino }) {
+  async criarEntrega({ descricao, origem, destino, criadorId = null }) {
     if (!descricao || !origem || !destino) {
       throw new AppError('Os campos descricao, origem e destino são obrigatórios.');
     }
@@ -58,6 +58,7 @@ export class EntregasService {
       destino,
       status: STATUS.CRIADA,
       motoristaId: null,
+      criadorId,
       historico,
     });
   }
