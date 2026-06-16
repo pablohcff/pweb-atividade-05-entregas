@@ -1,9 +1,17 @@
+<!-- data-testid adicionados para testes E2E (RF-06) -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
     <a class="navbar-brand" href="/painel/entregas">Painel de Entregas</a>
     <div class="navbar-nav">
       <a class="nav-link" href="/painel/entregas">Entregas</a>
       <a class="nav-link" href="/painel/motoristas">Motoristas</a>
+      <!-- Botão Sair: limpa localStorage e redireciona para /login -->
+      <button
+        data-testid="btn-sair"
+        class="nav-link btn btn-link text-white"
+        onclick="localStorage.removeItem('accessToken'); window.location.href='/login';">
+        Sair
+      </button>
     </div>
   </div>
 </nav>

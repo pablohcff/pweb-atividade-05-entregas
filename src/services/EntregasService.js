@@ -87,14 +87,16 @@ export class EntregasService {
     const entrega = await this.buscarPorId(id);
  
     if (STATUS_FINAIS.includes(entrega.status)) {
-      throw new AppError(`Não é possível avançar o status de uma entrega com status "${entrega.status}".`);
+      // 422: a transição não é processável — o status já é final
+      throw new AppError(`Não é possível avançar o status de uma entrega com status "${entrega.status}".`, 422);
     }
- 
+
     const proximoStatus = TRANSICOES_VALIDAS[entrega.status];
     if (!proximoStatus) {
-      throw new AppError(`Não há transição válida a partir do status "${entrega.status}".`);
+      // 422: não existe transição definida para este status
+      throw new AppError(`Não há transição válida a partir do status "${entrega.status}".`, 422);
     }
- 
+
     const evento = this._criarEvento(`Status atualizado de "${entrega.status}" para "${proximoStatus}".`);
     const historico = [...entrega.historico, evento];
  
@@ -105,10 +107,12 @@ export class EntregasService {
     const entrega = await this.buscarPorId(id);
  
     if (entrega.status === STATUS.ENTREGUE) {
-      throw new AppError('Não é possível cancelar uma entrega já finalizada (ENTREGUE).');
+      // 422: entrega finalizada não pode ser cancelada
+      throw new AppError('Não é possível cancelar uma entrega já finalizada (ENTREGUE).', 422);
     }
     if (entrega.status === STATUS.CANCELADA) {
-      throw new AppError('Esta entrega já está cancelada.');
+      // 422: entrega já está no status final CANCELADA
+      throw new AppError('Esta entrega já está cancelada.', 422);
     }
  
     const evento = this._criarEvento(`Entrega cancelada. Status anterior: "${entrega.status}".`);

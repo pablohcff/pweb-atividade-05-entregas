@@ -11,7 +11,8 @@ export class AuthController {
   }
 
   async login(req, res) {
-    const { accessToken } = await this.service.login(req.body);
-    return res.status(200).json({ accessToken });
+    // Retorna ambos os tokens; usuario fica apenas no payload do accessToken
+    const { accessToken, refreshToken } = await this.service.login(req.body);
+    return res.status(200).json({ accessToken, refreshToken });
   }
 }

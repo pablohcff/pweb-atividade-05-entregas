@@ -17,6 +17,11 @@ export class AuthService {
       throw new AppError('Os campos nome, email e senha são obrigatórios.', 400);
     }
 
+    // Valida comprimento mínimo da senha (segurança básica)
+    if (senha.length < 8) {
+      throw new AppError('A senha deve ter no mínimo 8 caracteres.', 400);
+    }
+
     const existe = await this.usuariosRepository.buscarPorEmail(email);
     if (existe) {
       throw new AppError('Email já cadastrado.', 409);
@@ -56,6 +61,15 @@ export class AuthService {
       expiresIn: process.env.JWT_EXPIRES_IN || '8h',
     });
 
-    return { accessToken };
+    // refreshToken: JWT de longa duração (sem persistência nesta versão)
+    const refreshToken = jwt.sign(
+      { sub: usuario.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' },
+    );
+
+    // Retorna os tokens e o objeto do usuário sem o campo senhaHash
+    const { senhaHash: _, ...dadosUsuario } = usuario;
+    return { accessToken, refreshToken, usuario: dadosUsuario };
   }
 }

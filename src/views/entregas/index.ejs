@@ -6,7 +6,8 @@
   <a href="/painel/entregas/nova" class="btn btn-primary">+ Nova Entrega</a>
 </div>
 
-<table class="table table-bordered table-hover">
+<!-- data-testid adicionados para seletores robustos nos testes E2E (RF-06) -->
+<table data-testid="tabela-entregas" class="table table-bordered table-hover">
   <thead class="table-dark">
     <tr>
       <th>#</th>
@@ -24,7 +25,7 @@
       <tr><td colspan="8" class="text-center text-muted">Nenhuma entrega encontrada.</td></tr>
     <% } %>
     <% entregas.forEach(function(e) { %>
-      <tr>
+      <tr data-testid="linha-entrega">
         <td><%= e.id %></td>
         <td><%= e.descricao %></td>
         <td><%= e.origem %></td>

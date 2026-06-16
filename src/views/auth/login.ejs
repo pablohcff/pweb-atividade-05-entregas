@@ -11,17 +11,18 @@
   <div class="card shadow" style="width: 100%; max-width: 420px;">
     <div class="card-body p-4">
       <h4 class="card-title mb-4 text-center">Delivery Tracker</h4>
-      <div id="alerta" class="alert d-none" role="alert"></div>
-      <form id="formLogin">
+      <!-- data-testid adicionados para seletores robustos nos testes E2E (RF-06) -->
+      <div id="alerta" data-testid="mensagem-erro" class="alert d-none" role="alert"></div>
+      <form id="formLogin" data-testid="form-login">
         <div class="mb-3">
           <label for="email" class="form-label">E-mail</label>
-          <input type="email" id="email" class="form-control" placeholder="seu@email.com" required>
+          <input type="email" id="email" data-testid="input-email" class="form-control" placeholder="seu@email.com" required>
         </div>
         <div class="mb-3">
           <label for="senha" class="form-label">Senha</label>
-          <input type="password" id="senha" class="form-control" required>
+          <input type="password" id="senha" data-testid="input-senha" class="form-control" required>
         </div>
-        <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        <button type="submit" data-testid="btn-entrar" class="btn btn-primary w-100">Entrar</button>
       </form>
     </div>
   </div>
