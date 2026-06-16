@@ -49,6 +49,8 @@ async function criarEntrega(token) {
 // ─── Limpeza ─────────────────────────────────────────────────────────────────
 
 beforeEach(async () => {
+  // Ordem importante: deletar filhos antes dos pais (FK constraints)
+  await prisma.eventoEntrega.deleteMany();
   await prisma.entrega.deleteMany();
   await prisma.usuario.deleteMany();
 });

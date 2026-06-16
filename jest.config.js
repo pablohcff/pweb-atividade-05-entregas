@@ -18,7 +18,7 @@ export default {
 
   // SQLite não suporta múltiplas conexões simultâneas com segurança;
   // executa as suítes sequencialmente para evitar conflitos no banco de testes.
-  runInBand: true,
+  maxWorkers: 1,
 
   // Arquivo de configuração global executado após o framework Jest ser carregado
   globalSetup: './tests/setup.js',

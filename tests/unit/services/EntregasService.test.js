@@ -1,7 +1,5 @@
 // tests/unit/services/EntregasService.test.js
 // RF-02: Testes unitários do EntregasService.
-// ⚠️  Nenhuma conexão com banco de dados — todos os colaboradores externos
-//     são substituídos por dublês (jest.fn()).
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { EntregasService } from '../../../src/services/EntregasService.js';
@@ -76,6 +74,18 @@ describe('EntregasService', () => {
       await expect(ato()).rejects.toHaveProperty('statusCode', 400);
     });
 
+    it('lança AppError 400 quando faltam campos obrigatórios', async () => {
+      // Arrange — testa quando descricao é undefined
+      const dados = { descricao: undefined, origem: 'São Paulo', destino: 'Campinas' };
+
+      // Act
+      const ato = () => service.criarEntrega(dados);
+
+      // Assert
+      await expect(ato()).rejects.toBeInstanceOf(AppError);
+      await expect(ato()).rejects.toHaveProperty('statusCode', 400);
+    });
+
     it('lança AppError 409 quando já existe entrega ativa com mesma descrição, origem e destino', async () => {
       // Arrange — repository retorna uma entrega ativa com os mesmos dados
       const entregaAtiva = fazerEntrega({ status: STATUS.EM_TRANSITO });
@@ -109,6 +119,28 @@ describe('EntregasService', () => {
       // Assert
       expect(repository.criar).toHaveBeenCalledTimes(1);
       expect(resultado.status).toBe(STATUS.CRIADA);
+    });
+
+    it('passa criadorId para o repository ao criar entrega', async () => {
+      // Arrange
+      repository.listarTodos.mockResolvedValue([]);
+      const entregaCriada = fazerEntrega();
+      repository.criar.mockResolvedValue(entregaCriada);
+
+      const dados = { 
+        descricao: 'Pacote A', 
+        origem: 'São Paulo', 
+        destino: 'Campinas',
+        criadorId: 42
+      };
+
+      // Act
+      await service.criarEntrega(dados);
+
+      // Assert
+      expect(repository.criar).toHaveBeenCalledWith(
+        expect.objectContaining({ criadorId: 42 }),
+      );
     });
   });
 
@@ -215,6 +247,154 @@ describe('EntregasService', () => {
       // Assert
       await expect(ato()).rejects.toBeInstanceOf(AppError);
       await expect(ato()).rejects.toHaveProperty('statusCode', 422);
+    });
+  });
+
+  // ── listarEntregas ──────────────────────────────────────────────────────────
+
+  describe('listarEntregas', () => {
+    it('retorna todas as entregas quando status não é especificado', async () => {
+      // Arrange
+      const entregas = [
+        fazerEntrega({ id: 1, status: STATUS.CRIADA }),
+        fazerEntrega({ id: 2, status: STATUS.EM_TRANSITO }),
+      ];
+      repository.listarTodos.mockResolvedValue(entregas);
+
+      // Act
+      const resultado = await service.listarEntregas();
+
+      // Assert
+      expect(resultado).toHaveLength(2);
+      expect(repository.listarTodos).toHaveBeenCalledTimes(1);
+    });
+
+    it('filtra entregas por status', async () => {
+      // Arrange
+      const todasEntregas = [
+        fazerEntrega({ id: 1, status: STATUS.CRIADA }),
+        fazerEntrega({ id: 2, status: STATUS.EM_TRANSITO }),
+      ];
+      repository.listarTodos.mockResolvedValue(todasEntregas);
+
+      // Act
+      const resultado = await service.listarEntregas(STATUS.CRIADA);
+
+      // Assert
+      expect(resultado).toHaveLength(1);
+      expect(resultado[0].status).toBe(STATUS.CRIADA);
+    });
+  });
+
+  // ── buscarPorId ─────────────────────────────────────────────────────────────
+
+  describe('buscarPorId', () => {
+    it('retorna a entrega quando encontrada', async () => {
+      // Arrange
+      const entrega = fazerEntrega({ id: 123 });
+      repository.buscarPorId.mockResolvedValue(entrega);
+
+      // Act
+      const resultado = await service.buscarPorId(123);
+
+      // Assert
+      expect(resultado).toEqual(entrega);
+      expect(repository.buscarPorId).toHaveBeenCalledWith(123);
+    });
+
+    it('lança AppError 404 quando entrega não existe', async () => {
+      // Arrange
+      repository.buscarPorId.mockResolvedValue(null);
+
+      // Act
+      const ato = () => service.buscarPorId(999);
+
+      // Assert
+      await expect(ato()).rejects.toBeInstanceOf(AppError);
+      await expect(ato()).rejects.toHaveProperty('statusCode', 404);
+    });
+  });
+
+  // ── buscarHistorico ─────────────────────────────────────────────────────────
+
+  describe('buscarHistorico', () => {
+    it('retorna o histórico de eventos da entrega', async () => {
+      // Arrange
+      const historico = [
+        { data: new Date().toISOString(), descricao: 'Entrega criada.' },
+        { data: new Date().toISOString(), descricao: 'Saiu para entrega.' },
+      ];
+      const entrega = fazerEntrega({ id: 1, historico });
+      repository.buscarPorId.mockResolvedValue(entrega);
+
+      // Act
+      const resultado = await service.buscarHistorico(1);
+
+      // Assert
+      expect(resultado).toEqual(historico);
+    });
+
+    it('lança AppError 404 quando entrega não existe', async () => {
+      // Arrange
+      repository.buscarPorId.mockResolvedValue(null);
+
+      // Act
+      const ato = () => service.buscarHistorico(999);
+
+      // Assert
+      await expect(ato()).rejects.toBeInstanceOf(AppError);
+      await expect(ato()).rejects.toHaveProperty('statusCode', 404);
+    });
+  });
+
+  // ── atribuirMotorista ───────────────────────────────────────────────────────
+
+  describe('atribuirMotorista', () => {
+    it('atribui um motorista à entrega com sucesso', async () => {
+      // Arrange
+      const entrega = fazerEntrega({ id: 1, motoristaId: null });
+      const motorista = { id: 10, nome: 'João', status: 'ATIVO' };
+      const entregaAtualizada = fazerEntrega({ id: 1, motoristaId: 10 });
+
+      repository.buscarPorId.mockResolvedValue(entrega);
+      motoristasRepository.buscarPorId.mockResolvedValue(motorista);
+      repository.atualizar.mockResolvedValue(entregaAtualizada);
+
+      // Act
+      const resultado = await service.atribuirMotorista(1, 10);
+
+      // Assert
+      expect(resultado.motoristaId).toBe(10);
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ motoristaId: 10 }),
+      );
+    });
+
+    it('lança AppError 404 quando entrega não existe', async () => {
+      // Arrange
+      repository.buscarPorId.mockResolvedValue(null);
+
+      // Act
+      const ato = () => service.atribuirMotorista(999, 10);
+
+      // Assert
+      await expect(ato()).rejects.toBeInstanceOf(AppError);
+      await expect(ato()).rejects.toHaveProperty('statusCode', 404);
+    });
+
+    it('lança AppError 404 quando motorista não existe', async () => {
+      // Arrange
+      const entrega = fazerEntrega({ id: 1 });
+      repository.buscarPorId.mockResolvedValue(entrega);
+      motoristasRepository.buscarPorId.mockResolvedValue(null);
+
+      // Act
+      const ato = () => service.atribuirMotorista(1, 999);
+
+      // Assert
+      await expect(ato()).rejects.toBeInstanceOf(AppError);
+      await expect(ato()).rejects.toHaveProperty('statusCode', 404);
     });
   });
 });

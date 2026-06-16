@@ -10,7 +10,6 @@ import { config } from 'dotenv';
 // Garante que as variáveis de .env.test estão carregadas neste processo de teste
 config({ path: '.env.test' });
 
-// Importa o app Express já montado (sem iniciar o servidor)
 const { default: app } = await import('../../src/app.js');
 
 // Importa o PrismaClient para limpeza direta do banco de testes
